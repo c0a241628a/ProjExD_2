@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import time
 import pygame as pg
 
 
@@ -27,6 +28,35 @@ def check_bound(rct: pg.Rect) -> tuple[bool, bool]: #  pgのRectだと伝える,
         tate = False
     return yoko, tate    
 
+
+def gameover(screen: pg.Surface) -> None:
+    bl_img = pg.Surface((1100, 650)) #  背景
+    bl_img.set_alpha(100)
+    pg.draw.rect(bl_img, (0, 0, 0), (0, 0, 1100, 650))
+    bl_rct = bl_img.get_rect()
+    screen.blit(bl_img, bl_rct)  #  描画
+    
+    naki_img = pg.image.load("fig/8.png") #  泣き鳥
+    naki_rct = naki_img.get_rect()  # Rect
+    naki_rct.center = 720, 325  # 初期座標
+    screen.blit(naki_img, naki_rct)  #  描画
+    
+    naki2_img = pg.image.load("fig/8.png") #  泣き鳥2
+    naki2_rct = naki2_img.get_rect()  # Rect
+    naki2_rct.center = 350, 325  # 初期座標
+    screen.blit(naki2_img, naki2_rct)  #  描画
+    
+    fonto = pg.font.Font(None, 80) #  文字
+    txt = fonto.render("Game Over", True, (255, 255, 255)) 
+    screen.blit(txt, [380, 300])
+    
+    pg.display.update()  # 画面更新
+    time.sleep(5)  # 一時停止
+
+    
+
+
+
 def main():
     pg.display.set_caption("逃げろ！こうかとん")  # タイトル
     screen = pg.display.set_mode((WIDTH, HEIGHT))  # 6行目
@@ -52,7 +82,7 @@ def main():
         screen.blit(bg_img, [0, 0])  # 背景の貼り付け
         
         if kk_rct.colliderect(bb_rct): #  ぶつかったら
-            print("Game Over")
+            gameover(screen)
             return
 
         key_lst = pg.key.get_pressed()
