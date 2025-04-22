@@ -52,8 +52,16 @@ def gameover(screen: pg.Surface) -> None:
     
     pg.display.update()  # 画面更新
     time.sleep(5)  # 一時停止
-
     
+
+def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
+    bb_imgs = []
+    for r in range(1, 11):
+        bb_img = pg.Surface((20*r, 20*r), pg.SRCALPHA)
+        pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
+        bb_imgs.append(bb_img)
+    bb_accs = [a for a in range(1, 11)]
+    return bb_imgs, bb_accs
 
 
 
@@ -61,6 +69,7 @@ def main():
     pg.display.set_caption("逃げろ！こうかとん")  # タイトル
     screen = pg.display.set_mode((WIDTH, HEIGHT))  # 6行目
     bg_img = pg.image.load("fig/pg_bg.jpg")  # 背景画像
+    sbb_accs = [a for a in range(1, 11)]
     
     kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)  # 0.9倍
     kk_rct = kk_img.get_rect()  # Rect
@@ -73,8 +82,11 @@ def main():
     bb_rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)  # 初期座標
     vx, vy = +5, +5 #  速度
     
+    bb_imgs, bb_accs = init_bb_imgs() 
+    
     clock = pg.time.Clock()
     tmr = 0
+    
     while True: #ゲームのループ
         for event in pg.event.get():
             if event.type == pg.QUIT: 
@@ -84,7 +96,13 @@ def main():
         if kk_rct.colliderect(bb_rct): #  ぶつかったら
             gameover(screen)
             return
+        
+        index = min(tmr // 500, 9)
+        avx = vx * bb_accs[index]
+        avy = vy * bb_accs[index]
+        bb_img = bb_imgs[index]
 
+        
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
         for key,mv in DELTA.items():  #keyにpg,mvにタプルが入る
@@ -96,15 +114,13 @@ def main():
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1]) #  なかったことに
         screen.blit(kk_img, kk_rct)  # 移動の描画
         
-        bb_rct.move_ip(vx, vy)  # 爆弾を動かす
+        bb_rct.move_ip(avx, avy)  # 爆弾を動かす
         yoko, tate = check_bound(bb_rct)
         if not yoko: #  左右どちらかにはみ出ていたら
             vx *= -1
         if not tate:#  上下どちらかにはみ出ていたら
             vy *= -1
         screen.blit(bb_img, bb_rct)  # 爆弾の描画
-            
-        
         
         pg.display.update()  # 画面の更新
         tmr += 1
