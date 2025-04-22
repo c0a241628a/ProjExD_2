@@ -14,6 +14,19 @@ DELTA = {
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
+def check_bound(rct: pg.Rect) -> tuple[bool, bool]: #  pgのRectだと伝える,真理値はbool
+    """
+    引数：こうかとんRectか爆弾Rect
+    戻り値：タプル（横方向判定結果，縦方向判定結果）
+    画面内ならTrue、画面外ならFalse
+    """
+    yoko, tate = True, True 
+    if rct.left < 0 or WIDTH < rct.right: # 横方向判定
+        yoko = False 
+    if rct.top < 0 or HEIGHT < rct.bottom: # 縦方向判定
+        tate = False
+    return yoko, tate    
+
 def main():
     pg.display.set_caption("逃げろ！こうかとん")  # タイトル
     screen = pg.display.set_mode((WIDTH, HEIGHT))  # 6行目
@@ -45,10 +58,21 @@ def main():
                 sum_mv[0] += mv[0]  #上下
                 sum_mv[1] += mv[1]  #左右
         kk_rct.move_ip(sum_mv)  # 合わせて動かす
+        if check_bound(kk_rct) != (True, True): #  鳥が画面の外だったら
+            kk_rct.move_ip(-sum_mv[0], -sum_mv[1]) #  なかったことに
         screen.blit(kk_img, kk_rct)  # 移動の描画
         
         bb_rct.move_ip(vx, vy)  # 爆弾を動かす
+        yoko, tate = check_bound(bb_rct)
+        if not yoko: #  左右どちらかにはみ出ていたら
+            vx *= -1
+        if not tate:#  上下どちらかにはみ出ていたら
+            vy *= -1
         screen.blit(bb_img, bb_rct)  # 爆弾の描画
+        
+        
+        
+            
         
         pg.display.update()  # 画面の更新
         tmr += 1
