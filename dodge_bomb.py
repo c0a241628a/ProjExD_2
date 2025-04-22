@@ -1,5 +1,6 @@
 import os
 import random
+import math
 import sys
 import time
 import pygame as pg
@@ -12,6 +13,22 @@ DELTA = {
     pg.K_LEFT:(-5, 0),
     pg.K_RIGHT:(5, 0),
     } #  辞書
+
+# MUKI辞書
+kk_img = pg.image.load("fig/3.png")
+kk_gyaku =  pg.transform.flip(kk_img, True, False)
+MUKI = {
+    (0, -5): pg.transform.rotozoom(kk_gyaku,   90, 0.9),   # 上
+    (+5, -5): pg.transform.rotozoom(kk_gyaku, 45, 0.9),  # 右上
+    (+5, 0):  pg.transform.rotozoom(kk_gyaku, 0, 0.9),  # 右
+    (+5, +5): pg.transform.rotozoom(kk_gyaku, -45, 0.9), # 右下
+    (0, +5):  pg.transform.rotozoom(kk_gyaku, -90, 0.9),  # 下
+    (-5, +5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 45, 0.9),  # 左下
+    (-5, 0):  pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9),   # 左
+    (-5, -5): pg.transform.rotozoom(pg.image.load("fig/3.png"), -45, 0.9),   # 左上
+}
+
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -63,7 +80,29 @@ def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
     bb_accs = [a for a in range(1, 11)]
     return bb_imgs, bb_accs
 
+def get_kk_img(sum_mv: tuple[int, int]) -> pg.Surface:
+    return MUKI.get(sum_mv, MUKI[(0, 0)])  # デフォルトで静止画像を返す
 
+
+
+
+def calc_orientation(org: pg.Rect, dst: pg.Rect,  current_xy: tuple[float, float]) -> tuple[float, float]:
+    org_x, org_y = org.center
+    dst_x, dst_y = dst.center
+    dx = dst_x - org_x
+    dy = dst_y - org_y
+    bekutoru = math.sqrt((dx**2 + dy**2))
+    if bekutoru < 300:
+        return current_xy
+    dx = dx/bekutoru
+    dx = dx*math.sqrt(50)
+    dy = dy/bekutoru
+    dy = dy*math.sqrt(50)
+    return (dx,dy)
+
+
+def get_kk_img(sum_mv: tuple[int, int]) -> pg.Surface:
+    return MUKI.get(sum_mv, MUKI[(+5, 0)])
 
 def main():
     pg.display.set_caption("逃げろ！こうかとん")  # タイトル
@@ -71,7 +110,7 @@ def main():
     bg_img = pg.image.load("fig/pg_bg.jpg")  # 背景画像
     sbb_accs = [a for a in range(1, 11)]
     
-    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)  # 0.9倍
+    kk_img = get_kk_img((0, 0))
     kk_rct = kk_img.get_rect()  # Rect
     kk_rct.center = 300, 200  # 初期座標
     #  設定だからwhileの外↓
@@ -80,7 +119,7 @@ def main():
     bb_img.set_colorkey((0, 0, 0)) #  背景を透明に
     bb_rct = bb_img.get_rect()  # Rect
     bb_rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)  # 初期座標
-    vx, vy = +5, +5 #  速度
+    vx, vy = +5, +5
     
     bb_imgs, bb_accs = init_bb_imgs() 
     
@@ -97,11 +136,14 @@ def main():
             gameover(screen)
             return
         
+        vx, vy = calc_orientation(bb_rct, kk_rct, (vx, vy))
+        
         index = min(tmr // 500, 9)
         avx = vx * bb_accs[index]
         avy = vy * bb_accs[index]
         bb_img = bb_imgs[index]
 
+        
         
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
@@ -109,17 +151,25 @@ def main():
             if key_lst[key]:
                 sum_mv[0] += mv[0]  #上下
                 sum_mv[1] += mv[1]  #左右
+        kk_img = get_kk_img(tuple(sum_mv))  # ← このタイミングで更新する
+        kk_rct.move_ip(sum_mv)
         kk_rct.move_ip(sum_mv)  # 合わせて動かす
         if check_bound(kk_rct) != (True, True): #  鳥が画面の外だったら
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1]) #  なかったことに
         screen.blit(kk_img, kk_rct)  # 移動の描画
         
         bb_rct.move_ip(avx, avy)  # 爆弾を動かす
+        if check_bound(kk_rct) != (True, True): # 画面外だったら
+            kk_rct.move_ip(-sum_mv[0], -sum_mv[1]) # 画面内に戻す
+        screen.blit(kk_img, kk_rct)
+        bb_rct.move_ip(vx, vy)  # 爆弾の移動
         yoko, tate = check_bound(bb_rct)
-        if not yoko: #  左右どちらかにはみ出ていたら
+        if not yoko:  # 左右どちらかにはみ出ていたら
             vx *= -1
-        if not tate:#  上下どちらかにはみ出ていたら
+        if not tate:  # 上下どちらかにはみ出ていたら
             vy *= -1
+        screen.blit(bb_img, bb_rct)  # 爆弾の描画
+        pg.display.update()
         screen.blit(bb_img, bb_rct)  # 爆弾の描画
         
         pg.display.update()  # 画面の更新
