@@ -50,6 +50,10 @@ def main():
             if event.type == pg.QUIT: 
                 return
         screen.blit(bg_img, [0, 0])  # 背景の貼り付け
+        
+        if kk_rct.colliderect(bb_rct): #  ぶつかったら
+            print("Game Over")
+            return
 
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
@@ -69,10 +73,8 @@ def main():
         if not tate:#  上下どちらかにはみ出ていたら
             vy *= -1
         screen.blit(bb_img, bb_rct)  # 爆弾の描画
-        
-        
-        
             
+        
         
         pg.display.update()  # 画面の更新
         tmr += 1
